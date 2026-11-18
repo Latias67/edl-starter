@@ -826,8 +826,6 @@ Félicitations ! Vous avez maintenant :
 ✅ **Exercice 8** : Vérifié le déploiement et la persistance des données
 ✅ **Exercice 9** : Mis en place le déploiement continu (CI verte → déploiement)
 
-**Temps total estimé :** 3h
-
 ---
 
 ## 📚 Ce que Vous Avez Appris

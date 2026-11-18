@@ -1,6 +1,17 @@
 # 🚀 TP 2 : CI/CD avec GitHub Actions
 
-**Prérequis :** TP 1 terminé (backend et frontend avec tests)
+**Point de départ :** votre dépôt du TP 1 (votre fork), avec votre code et vos tests. On continue dans le même dépôt : la CI va tester **votre** travail.
+
+Avant de commencer, vérifiez que vos tests passent en local, puis poussez votre travail du TP 1 :
+
+```bash
+cd backend && uv run pytest        # 14 passed, 2 skipped (ou plus avec les bonus)
+cd ../frontend && npm test -- --run   # 10 passed (ou plus avec les bonus)
+cd ..
+git add .
+git commit -m "TP 1 terminé"
+git push origin main
+```
 
 ## 🎯 Objectifs du TP
 
@@ -136,6 +147,8 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
    on:
      push:
        branches: [main]
+     pull_request:            # aussi sur les pull requests (indispensable à l'exercice 4)
+       branches: [main]
 
    jobs:
      backend:
@@ -192,6 +205,8 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
 
 💡 **Erreur « Invalid workflow file » ?** Le fichier YAML est mal écrit, presque toujours à cause de l'**indentation** (YAML utilise des espaces, jamais de tabulations, et `with:` doit être décalé sous `uses:`). Le workflow ne se lance même pas : cliquez sur l'erreur dans l'onglet Actions pour voir la ligne fautive. L'extension VS Code **GitHub Actions** souligne ces erreurs avant même de pousser.
 
+💡 **Aucun workflow ne se lance ?** Sur un fork, GitHub peut désactiver les workflows : dans l'onglet **Actions**, cliquez sur **« I understand my workflows, go ahead and enable them »**, puis poussez à nouveau.
+
 ### ✅ Résultat attendu
 
 Dans l'onglet "Actions" sur GitHub, vous devriez voir :
@@ -223,6 +238,8 @@ Créer un workflow qui teste et build le frontend automatiquement.
 
    on:
      push:
+       branches: [main]
+     pull_request:
        branches: [main]
 
    jobs:
@@ -482,6 +499,8 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
    - Cliquez sur **"Merge pull request"**
    - Confirmez avec **"Confirm merge"**
 
+💡 Vous êtes propriétaire du dépôt : un `git push origin main` direct reste possible malgré la protection (GitHub affiche « Bypassed rule violations »). Pour aller plus vite, la suite du TP pousse directement sur `main`.
+
 5. **Nettoyez votre environnement local :**
 
    ```bash
@@ -549,7 +568,7 @@ Créer un pipeline CI global qui orchestre backend et frontend.
      workflow_call:  # ✨ Ce workflow sera lancé par le pipeline
    ```
 
-   💡 **Pourquoi retirer `push` ?** Sinon, chaque push lancerait les tests **deux fois** : une fois par `backend.yml` lui-même, une fois par le pipeline. Désormais, c'est le pipeline qui décide quand lancer les tests.
+   💡 **Pourquoi retirer `push` et `pull_request` ?** Sinon, chaque push et chaque PR lanceraient les tests **deux fois** : une fois par `backend.yml` lui-même, une fois par le pipeline. Désormais, c'est le pipeline (qui a ces deux déclencheurs) qui décide quand lancer les tests.
 
 2. **Créez `.github/workflows/ci-pipeline.yml` :**
 
@@ -859,8 +878,6 @@ Vous savez maintenant :
 - ✅ Afficher le statut de vos workflows avec des badges
 
 **Ces compétences sont directement utilisables en entreprise !** 🚀
-
-**Temps total estimé :** 4-5 heures
 
 ---
 
