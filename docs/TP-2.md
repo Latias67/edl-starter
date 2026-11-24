@@ -13,6 +13,10 @@ git commit -m "TP 1 terminé"
 git push origin main
 ```
 
+⚠️ **Des tests échouent encore ?** Terminez d'abord les exercices 1 à 4 du TP 1 : les tests laissés vides (`pytest.fail`, `throw new Error`) feraient échouer la CI dès l'exercice 1.
+
+💡 Vous avez installé le backend avec pip au TP 1 ? En local, remplacez `uv run pytest` par `pytest` (la CI, elle, installe uv toute seule).
+
 ## 🎯 Objectifs du TP
 
 **Objectif principal :** Automatiser les tests avec GitHub Actions
@@ -80,9 +84,11 @@ git push origin main
 3. Configurez :
    - Note : `TP EDL`
    - Expiration : `90 days`
-   - Cochez : ✅ **`repo`** (accès complet aux repositories)
+   - Cochez : ✅ **`repo`** (accès complet aux repositories) **et** ✅ **`workflow`** (indispensable pour pousser des fichiers dans `.github/workflows/`)
 4. Cliquez sur **"Generate token"**
 5. **⚠️ Copiez le token immédiatement** (vous ne pourrez plus le revoir !)
+
+⚠️ **Vous avez déjà un token ?** Vérifiez qu'il a le droit **`workflow`** (même page, cliquez sur le token pour le modifier). Sans lui, le push de l'exercice 1 est refusé avec *« refusing to allow a Personal Access Token to create or update workflow … without `workflow` scope »*.
 
 #### Utiliser le token
 
@@ -193,9 +199,10 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
    ```bash
    cd backend
    uv run pytest -v --cov
+   cd ..
    ```
 
-5. **Poussez et vérifiez sur GitHub Actions :**
+5. **Poussez et vérifiez sur GitHub Actions** (depuis la racine du dépôt) :
 
    ```bash
    git add .github/workflows/backend.yml
@@ -278,6 +285,7 @@ Créer un workflow qui teste et build le frontend automatiquement.
    cd frontend
    npm test -- --run
    npm run build
+   cd ..
    ```
 
    💡 `--run` lance les tests **une seule fois**. Sans lui, `npm test` reste ouvert en mode surveillance (pratique en développement, mais la CI attend que la commande se termine).
@@ -348,6 +356,7 @@ Apprendre à lire les logs et corriger les erreurs de workflow.
    ```bash
    cd backend
    uv run pytest tests/test_api.py::test_health_check -v
+   cd ..
    ```
 
 6. **Corrigez le bug :**
@@ -359,7 +368,9 @@ Apprendre à lire les logs et corriger les erreurs de workflow.
 7. **Vérifiez localement puis poussez :**
 
    ```bash
+   cd backend
    uv run pytest tests/test_api.py::test_health_check -v
+   cd ..
    git add backend/tests/test_api.py
    git commit -m "fix: correct health check assertion"
    git push origin main
@@ -454,19 +465,17 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
    git push origin feature/test-branch-protection
    ```
 
-4. **Créez une Pull Request :**
+4. **Créez une Pull Request sur GitHub :**
+   - Ouvrez votre fork sur GitHub : un bandeau jaune propose **« Compare & pull request »**, cliquez dessus (ou utilisez le lien affiché par `git push`).
+   - ⚠️ **Vérifiez la ligne du haut :** `base repository` doit être **VOTRE fork** (`VOTRE_NOM/edl-starter`, branche `main`), **pas** `umons-ig/edl-starter`. Sur un fork, GitHub propose par défaut le dépôt d'origine : changez-le.
+   - Titre : `Test branch protection`, puis **« Create pull request »**.
+
+   *Avec GitHub CLI (facultatif, si `gh` est installé et connecté) :*
 
    ```bash
-   # Si c'est la première fois, configurez le repo par défaut
-   gh repo set-default
-   # Sélectionnez VOTRE fork (pas le repo d'origine)
-
-   # Créez la PR
+   gh repo set-default        # choisissez VOTRE fork, pas umons-ig
    gh pr create --title "Test branch protection" --body "Testing if broken tests block merge"
    ```
-   💡 **Attention :** les commandes `gh ...` nécessitent l’installation de **GitHub CLI**.  
-   Si vous ne l’avez pas encore, installez-le avant d’exécuter ces commandes.
-
 
 5. **Observez ce qui se passe :**
    - ⏳ Les workflows s'exécutent automatiquement
@@ -593,11 +602,18 @@ Créer un pipeline CI global qui orchestre backend et frontend.
      summary:
        name: All Tests Passed
        needs: [backend, frontend]
+       if: always()  # ✨ Tourne aussi quand backend ou frontend échoue
        runs-on: ubuntu-latest
        steps:
+         - name: ❌ Un job a échoué
+           if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+           run: exit 1
+
          - name: 🎉 Success
            run: echo "🎉 Tous les tests sont passés !"
    ```
+
+   💡 **Pourquoi `if: always()` ?** Sans lui, `summary` est **sauté** dès que backend ou frontend échoue. Or GitHub compte un job sauté comme réussi : une PR aux tests rouges pourrait être mergée. Avec `if: always()`, `summary` tourne toujours et échoue si un des jobs a échoué.
 
 3. **Poussez et observez :**
 
@@ -625,7 +641,7 @@ Dans l'onglet **Actions**, il n'y a plus qu'**un seul workflow** par push, avec 
   └─ All Tests Passed
 ```
 
-Le job `summary` (All Tests Passed) attend que backend **ET** frontend soient terminés avant de s'exécuter.
+Le job `summary` (All Tests Passed) attend que backend **ET** frontend soient terminés avant de s'exécuter. Il est vert seulement si les deux ont réussi.
 
 ---
 
@@ -634,7 +650,7 @@ Le job `summary` (All Tests Passed) attend que backend **ET** frontend soient te
 ### Objectif
 
 Exécuter les tests rapides (unitaires) sur toutes les branches, mais les tests lents (E2E) seulement sur `main`.
-Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’application comme le ferait un utilisateur réel (du frontend au backend, base de données, API, etc.). Ils sont plus lents que les tests unitaires, c’est pourquoi on ne les exécute que sur la branche `main`.
+Les tests **E2E (end-to-end)** vérifient un scénario complet, du début à la fin, comme le ferait un utilisateur (ici : créer plusieurs tâches puis les retrouver dans la liste). Dans une vraie application, ils passent aussi par le frontend et la base de données, et sont beaucoup plus lents que les tests unitaires : c'est pourquoi on ne les exécute que sur la branche `main`. Le nôtre reste rapide, mais le principe est le même.
 
 ### Instructions
 
@@ -651,11 +667,9 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
        )
    ```
 
-2. **Dans `backend/tests/test_api.py`, créez un test E2E :**
+2. **À la fin de `backend/tests/test_api.py`, créez un test E2E** (`import pytest` est déjà en haut du fichier) :
 
    ```python
-   import pytest
-
    @pytest.mark.e2e
    def test_complete_task_lifecycle(client):
        """Test E2E : Créer plusieurs tâches et les lister."""
@@ -699,6 +713,7 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
 
    # Tous les tests
    uv run pytest -v
+   cd ..
    ```
 
 **Partie 2 : Modifier le workflow backend pour séparer les tests**
@@ -780,9 +795,10 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
 
    **Étape 1 : Tester sur main d'abord**
 
-   Poussez vos changements sur main :
+   Poussez vos changements sur main (depuis la racine du dépôt, pour que `git add .` inclue aussi `.github/workflows/backend.yml`) :
 
    ```bash
+   git status   # backend.yml, conftest.py et test_api.py doivent apparaître
    git add .
    git commit -m "feat: split unit and E2E tests"
    git push origin main
@@ -805,10 +821,13 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
    git add .
    git commit -m "test: verify E2E don't run on PR"
    git push origin test/pr-no-e2e
-   gh pr create --title "Test E2E sur PR" --body "Vérifier que E2E ne tourne pas sur PR"
    ```
 
+   Créez la PR comme à l'exercice 4 (**base repository = votre fork**), avec le titre `Test E2E sur PR`.
+
    → Sur GitHub, allez dans **Actions** → ouvrez le **"CI Pipeline"** de la PR → Vous devriez voir **seulement le job "Unit Tests"** côté backend ("E2E Tests" est marqué *skipped*). Le check `All Tests Passed` reste vert : un job sauté volontairement ne bloque pas la PR.
+
+   Fermez ensuite la PR sans la merger (**« Close pull request »**) : elle ne servait qu'au test.
 
 ### ✅ Résultat attendu
 
@@ -825,18 +844,24 @@ Afficher le statut des workflows dans votre README.
 
 ### Instructions
 
-1. **Modifiez `README.md` et ajoutez au début :**
+1. **Revenez sur `main`** (vous êtes encore sur la branche de test de l'exercice 6) :
+
+   ```bash
+   git checkout main
+   ```
+
+2. **Modifiez `README.md` et ajoutez au début :**
    ```markdown
    # TaskFlow API
 
    ![CI Pipeline](https://github.com/VOTRE_NOM/VOTRE_REPO/actions/workflows/ci-pipeline.yml/badge.svg)
    ```
 
-2. **Remplacez :**
+3. **Remplacez :**
    - `VOTRE_NOM` → Votre username GitHub
    - `VOTRE_REPO` → Nom de votre repo
 
-3. **Poussez :**
+4. **Poussez :**
 
    ```bash
    git add README.md
