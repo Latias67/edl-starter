@@ -15,7 +15,7 @@ git push origin main
 
 ⚠️ **Des tests échouent encore ?** Terminez d'abord les exercices 1 à 4 du TP 1 : les tests laissés vides (`pytest.fail`, `throw new Error`) feraient échouer la CI dès l'exercice 1.
 
-💡 Vous avez installé le backend avec pip au TP 1 ? En local, remplacez `uv run pytest` par `pytest` (la CI, elle, installe uv toute seule).
+💡 Vous avez installé le backend avec pip au TP 1 ? En local, remplacez `uv run pytest` par `pytest` (la CI, elle, installe uv grâce à l'étape `pip install uv` de votre workflow).
 
 ## 🎯 Objectifs du TP
 
@@ -850,10 +850,8 @@ Afficher le statut des workflows dans votre README.
    git checkout main
    ```
 
-2. **Modifiez `README.md` et ajoutez au début :**
+2. **Dans `README.md`, ajoutez cette ligne juste sous le titre** (la première ligne, `# 🚀 EDL Starter…`), en laissant une ligne vide entre les deux :
    ```markdown
-   # TaskFlow API
-
    ![CI Pipeline](https://github.com/VOTRE_NOM/VOTRE_REPO/actions/workflows/ci-pipeline.yml/badge.svg)
    ```
 
