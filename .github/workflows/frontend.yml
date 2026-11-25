@@ -24,7 +24,7 @@ jobs:
       
       # TODO : Installez les dépendances (cd frontend && npm ci)
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefix frontend
       
       # TODO : Lancez les tests
       - name: Run tests
