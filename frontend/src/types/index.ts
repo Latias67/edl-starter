@@ -1,5 +1,5 @@
 // API Types matching the FastAPI backend
-// Updated for Atelier 1 & 2: Using integer IDs (simpler than UUIDs)
+// Updated for TP 1 & 2: Using integer IDs (simpler than UUIDs)
 
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";

@@ -50,6 +50,7 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
+  - Installation: installation.md
   - TP 1: TP-1.md
   - TP 2: TP-2.md
   - TP 3: TP-3.md

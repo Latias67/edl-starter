@@ -1,13 +1,18 @@
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 from src.app import app, clear_tasks
+
+# N'affiche pas chaque requête HTTP du client de test sous les tests en échec
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 
 
 @pytest.fixture(autouse=True)
 def clean_tasks():
     """
-    Clear all tasks before each test.
-    This ensures tests don't interfere with each other.
+    Vide les tâches avant et après chaque test.
+    Ainsi, les tests ne se gênent pas entre eux.
     """
     clear_tasks()
     yield
@@ -17,10 +22,10 @@ def clean_tasks():
 @pytest.fixture
 def client():
     """
-    Provide a test client for making API requests.
+    Fournit un client HTTP de test pour appeler l'API.
 
-    Usage in tests:
-        def test_something(client):
+    Utilisation dans un test :
+        def test_quelque_chose(client):
             response = client.get("/tasks")
             assert response.status_code == 200
     """

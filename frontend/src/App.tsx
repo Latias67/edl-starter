@@ -3,6 +3,7 @@ import { api } from './api/api';
 import { Task, TaskCreate } from './types/index';
 import { SimpleTaskList } from './components/SimpleTaskList';
 import { TaskForm } from './components/TaskForm';
+import { countByStatus, completionRate } from './utils/tasks';
 import './App.css';
 
 function App() {
@@ -11,22 +12,13 @@ function App() {
   const [error, setError] = useState<Error | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  // Charge les tâches une seule fois, au premier affichage
   useEffect(() => {
-    fetchTasks();
+    api.getTasks()
+      .then((data) => setTasks(data))
+      .catch((err) => setError(err as Error))
+      .finally(() => setIsLoading(false));
   }, []);
-
-  const fetchTasks = async () => {
-    try {
-      setIsLoading(true);
-      const data = await api.getTasks();
-      setTasks(data);
-      setError(null);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateTask = async (taskData: TaskCreate) => {
     try {
@@ -70,15 +62,23 @@ function App() {
     );
   }
 
+  const counts = countByStatus(tasks);
+
   return (
     <div className="app">
       <header>
         <h1>TaskFlow</h1>
         <p>Gestionnaire de Tâches</p>
+        <p className="stats">
+          À faire : {counts.todo} · En cours : {counts.in_progress} · Terminées : {counts.done}
+          {' '}({completionRate(tasks)} %)
+        </p>
       </header>
 
       <main>
+        {/* key : le formulaire est recréé (et pré-rempli) quand on change de tâche à modifier */}
         <TaskForm
+          key={editingTask?.id ?? 'nouvelle'}
           task={editingTask}
           onSubmit={(data) => {
             if (editingTask) {

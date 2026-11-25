@@ -15,7 +15,7 @@ Ce starter contient une application **TaskFlow** complète avec :
 ### Prérequis
 
 - **Python 3.11+** (pour le backend)
-- **Node.js 18+** (pour le frontend)
+- **Node.js 22.12+ (24 LTS recommandé)** (pour le frontend) : voir `docs/installation.md`
 - **Git**
 
 ### Installation
@@ -111,7 +111,10 @@ edl-starter/
 │   │   ├── App.tsx          # Composant principal
 │   │   ├── api/
 │   │   │   ├── api.ts       # Client API
-│   │   │   └── api.test.ts  # Tests API
+│   │   │   └── api.test.js  # Tests API (exemples avec mocks)
+│   │   ├── utils/
+│   │   │   ├── tasks.ts     # Fonctions de calcul (compteurs)
+│   │   │   └── tasks.test.js # Tests à écrire (TP 1)
 │   │   └── components/
 │   │       ├── SimpleTaskList.tsx
 │   │       └── TaskForm.tsx
@@ -163,10 +166,10 @@ uv run uvicorn src.app:app --reload
 ```bash
 cd frontend
 npm run dev
-# → http://localhost:5173
+# → http://localhost:3000
 ```
 
-**Ouvrir dans le navigateur :** <http://localhost:5173>
+**Ouvrir dans le navigateur :** <http://localhost:3000>
 
 ---
 

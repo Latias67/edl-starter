@@ -1,5 +1,5 @@
 """
-Tests API TaskFlow - Atelier 1 Starter
+Tests API TaskFlow - TP 1
 
 Apprenez en faisant ! Ce fichier vous montre comment écrire des tests, puis vous en écrirez de similaires.
 
@@ -111,11 +111,18 @@ def test_get_task_by_id(client):
 
 
 # =============================================================================
-# PARTIE 2 : À VOUS ! Complétez ces tests
+# PARTIE 2 : À VOUS ! (Exercices 1 et 2)
 # =============================================================================
+#
+# Écrivez d'abord ces tests : ils échouent, car delete_task() et update_task()
+# ne sont pas encore écrites dans src/app.py. Puis écrivez ces fonctions
+# jusqu'à ce que les tests passent.
+#
+# Pour chaque test : supprimez la ligne pytest.fail(...), puis écrivez
+# ARRANGE / ACT / ASSERT. La docstring dit ce qu'il faut vérifier.
 
-# EXERCICE 1 : Écrire un test pour SUPPRIMER une tâche
-# Pattern : Créer → Supprimer → Vérifier qu'elle a disparu
+# --- Exercice 1 : supprimer une tâche ---
+
 def test_delete_task(client):
     """
     VOTRE TÂCHE : Écrire un test qui supprime une tâche.
@@ -183,11 +190,8 @@ def test_update_task(client):
     pass
 
 
-# EXERCICE 3 : Tester la validation - un titre vide devrait échouer
-def test_create_task_empty_title(client):
+# --- Exercice 2 : modifier une tâche ---
     """
-    VOTRE TÂCHE : Tester que créer une tâche avec un titre vide échoue.
-
     Étapes :
     1. Essayer de créer une tâche avec title = ""
     2. Vérifier que le code de statut est 422 (Erreur de Validation)
@@ -210,8 +214,8 @@ def test_update_task_with_invalid_priority(client):
     2. Essayer de la mettre à jour avec priority="urgent" (invalide)
     3. Vérifier que le code de statut est 422 (Erreur de Validation)
 
-    Rappel : Les priorités valides sont "low", "medium", "high" (voir TaskPriority dans app.py)
-    """
+    Rappel : Les priorités valides sont "low", "medium", "high" (voir TaskPriority dans app.py)"""
+
     # TODO : Écrivez votre test ici !
     create_response = client.post("/tasks", json={"title": "Tâche pour test"})
     task_id = create_response.json()["id"]
@@ -220,7 +224,6 @@ def test_update_task_with_invalid_priority(client):
     pass
 
 
-# EXERCICE 5 : Tester l'erreur 404
 def test_get_nonexistent_task(client):
     """
     VOTRE TÂCHE : Tester qu'obtenir une tâche qui n'existe pas retourne 404.
@@ -235,52 +238,67 @@ def test_get_nonexistent_task(client):
     pass
 
 
-# =============================================================================
-# EXERCICES BONUS (Si vous finissez en avance !)
-# =============================================================================
-
-# BONUS 1 : Tester le filtrage par statut
 def test_filter_tasks_by_status(client):
-    """
-    BONUS : Tester le filtrage des tâches par statut.
+    """Créez une tâche "todo" et une tâche "done" : GET /tasks?status=done
+    ne renvoie qu'une seule tâche, celle qui est terminée."""
+    todo_response = client.post("/tasks", json={"title": "Tâche à faire"})
+    done_response = client.post(
+        "/tasks",
+        json={"title": "Tâche terminée", "status": "done"},
+    )
 
-    Étapes :
-    1. Créer 2 tâches : une avec status="todo", une avec status="done"
-    2. Obtenir les tâches avec le filtre : client.get("/tasks?status=done")
-    3. Vérifier que seule la tâche "done" est retournée
-    """
-    # TODO : Écrivez votre test ici !
-    pass
+    assert todo_response.status_code == 201
+    assert done_response.status_code == 201
 
+    response = client.get("/tasks", params={"status": "done"})
 
-# BONUS 2 : Tester la mise à jour d'un seul champ
-def test_update_only_status(client):
-    """
-    BONUS : Tester que mettre à jour seulement le statut ne change pas les autres champs.
-
-    Étapes :
-    1. Créer une tâche avec title="Test" et status="todo"
-    2. Mettre à jour seulement le statut à "done"
-    3. Vérifier que le statut a changé MAIS le titre est resté le même
-    """
-    # TODO : Écrivez votre test ici !
-    pass
+    assert response.status_code == 200
+    tasks = response.json()
+    assert len(tasks) == 1
+    assert tasks[0]["id"] == done_response.json()["id"]
 
 
-# BONUS 3 : Tester le cycle de vie complet d'une tâche
-def test_task_lifecycle(client):
-    """
-    BONUS : Tester le cycle de vie complet : Créer → Lire → Mettre à jour → Supprimer
+# =============================================================================
+# BONUS (si vous avez fini)
+# =============================================================================
+#
+def test_filter_by_status_and_priority(client):
+    """GET /tasks?status=todo&priority=high combine les deux filtres."""
+    matching_task = client.post(
+        "/tasks",
+        json={"title": "Tâche correspondante", "status": "todo", "priority": "high"},
+    )
+    assert matching_task.status_code == 201
 
-    Étapes :
-    1. Créer une tâche
-    2. La lire (GET par ID)
-    3. La mettre à jour (changer le statut à "done")
-    4. La supprimer
-    5. Vérifier qu'elle a disparu (GET devrait retourner 404)
-    """
-    # TODO : Écrivez votre test ici !
-    pass
+    for task in (
+        {"title": "Mauvais statut", "status": "done", "priority": "high"},
+        {"title": "Mauvaise priorité", "status": "todo", "priority": "low"},
+        {"title": "Statut et priorité incorrects", "status": "done", "priority": "low"},
+    ):
+        response = client.post("/tasks", json=task)
+        assert response.status_code == 201
+
+    response = client.get(
+        "/tasks",
+        params={"status": "todo", "priority": "high"},
+    )
+
+    assert response.status_code == 200
+    assert [task["id"] for task in response.json()] == [matching_task.json()["id"]]
+
+
+def test_create_task_with_title_too_long(client):
+    """Le titre est limité à 200 caractères : 200 est accepté (201), 201 est refusé (422).
+    Astuce : "a" * 200 crée un texte de 200 caractères."""
+    accepted_title = "a" * 200
+    accepted_response = client.post("/tasks", json={"title": accepted_title})
+
+    assert accepted_response.status_code == 201
+    assert accepted_response.json()["title"] == accepted_title
+
+    rejected_response = client.post("/tasks", json={"title": "a" * 201})
+
+    assert rejected_response.status_code == 422
 
 
 # =============================================================================
@@ -310,8 +328,7 @@ PATTERNS COURANTS :
    response = client.post("/tasks", json={"bad": "data"})
    assert response.status_code == 422
 
-6. Tester les erreurs 404 :
-   response = client.get("/tasks/999")
+6. Tester les erreurs 404 (la ressource demandée n'existe pas) :
    assert response.status_code == 404
 
 CODES DE STATUT COURANTS :
@@ -323,10 +340,6 @@ CODES DE STATUT COURANTS :
 
 RAPPELEZ-VOUS :
 - La fixture `client` est automatiquement fournie par conftest.py
-- La base de données est automatiquement nettoyée avant/après chaque test
+- Les tâches sont automatiquement effacées avant/après chaque test (fixture clean_tasks)
 - Les tests doivent être indépendants (ne pas dépendre d'autres tests)
 """
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

@@ -8,7 +8,8 @@ TP 3: Will introduce PostgreSQL database (see migration guide)
 """
 
 from typing import List, Optional, Dict
-from datetime import datetime
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from enum import Enum
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -68,11 +69,11 @@ class Task(TaskCreate):
 
 
 # =============================================================================
-# IN-MEMORY STORAGE (for Atelier 1 & 2)
+# IN-MEMORY STORAGE (for TP 1 & 2)
 # =============================================================================
 
 # Simple dictionary to store tasks
-# In Atelier 3, this will be replaced with PostgreSQL database
+# In TP 3, this will be replaced with PostgreSQL database
 tasks_db: Dict[int, Task] = {}
 next_id = 1
 
@@ -96,26 +97,23 @@ def clear_tasks():
 # FASTAPI APP
 # =============================================================================
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Runs once at startup (before yield) and once at shutdown (after yield)."""
+    logger.info("🚀 TaskFlow backend starting up...")
+    logger.info("Using in-memory storage (no database)")
+    yield
+    logger.info("🛑 TaskFlow backend shutting down...")
+
+
 app = FastAPI(
     title="TaskFlow API",
     description="Simple task management API for learning unit testing and CI/CD",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-def startup():
-    """Simple startup - just log a message."""
-    logger.info("🚀 TaskFlow backend starting up...")
-    logger.info("Using in-memory storage (no database)")
-
-
-@app.on_event("shutdown")
-def shutdown():
-    """Simple shutdown - just log a message."""
-    logger.info("🛑 TaskFlow backend shutting down...")
 
 
 # =============================================================================
@@ -185,7 +183,7 @@ async def create_task(task_data: TaskCreate) -> Task:
 
     # Create new task with auto-generated ID
     task_id = get_next_id()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     task = Task(
         id=task_id,
@@ -209,29 +207,18 @@ async def update_task(task_id: int, updates: TaskUpdate) -> Task:
     """
     Update an existing task (partial update supported).
 
-    TODO (Atelier 1 - Exercice 2): Implémenter cette fonction
+    TODO (TP 1 - Exercice 2) : écrire cette fonction.
 
-    Étapes à suivre:
-    1. Vérifier que la tâche existe dans tasks_db
-       - Si elle n'existe pas, lever HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    Comportement attendu (c'est ce que vos tests test_update_* doivent vérifier) :
+    - 404 si la tâche n'existe pas (même message que get_task) ;
+    - seuls les champs envoyés par le client sont modifiés, les autres restent identiques ;
+    - created_at ne change pas, updated_at prend la date actuelle ;
+    - renvoie la tâche mise à jour.
 
-    2. Récupérer la tâche existante
-
-    3. Extraire les champs à mettre à jour avec updates.model_dump(exclude_unset=True)
-
-    4. Valider le titre s'il est fourni (ne doit pas être vide)
-       - Si vide, lever HTTPException(status_code=422, detail="Title cannot be empty")
-
-    5. Créer une nouvelle Task avec:
-       - Les champs mis à jour (utiliser update_data.get("field", existing_task.field))
-       - created_at = existing_task.created_at (ne change pas)
-       - updated_at = datetime.utcnow() (nouvelle date)
-
-    6. Mettre à jour tasks_db[task_id]
-
-    7. Retourner la tâche mise à jour
-
-    Indice: Regardez comment create_task fonctionne pour vous inspirer
+    Indices :
+    - create_task() montre comment construire une Task ;
+    - updates.model_dump(exclude_unset=True) renvoie un dictionnaire contenant
+      uniquement les champs envoyés, par exemple {"status": "done"}.
     """
     # TODO: Votre code ici
     if task_id not in tasks_db:
@@ -250,7 +237,7 @@ async def update_task(task_id: int, updates: TaskUpdate) -> Task:
         assignee=update_data.get("assignee", task.assignee),
         due_date=update_data.get("due_date", task.due_date),
         created_at=task.created_at,
-        updated_at=datetime.utcnow()
+        updated_at=datetime.now(timezone.utc)
     )
 
     tasks_db[task_id] = updated_task
@@ -262,18 +249,13 @@ async def delete_task(task_id: int):
     """
     Delete a task by ID.
 
-    TODO (Atelier 1 - Exercice 1): Implémenter cette fonction
+    TODO (TP 1 - Exercice 1) : écrire cette fonction.
 
-    Étapes à suivre:
-    1. Vérifier que la tâche existe dans tasks_db
-       - Si elle n'existe pas, lever HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    Comportement attendu (c'est ce que vos tests test_delete_* doivent vérifier) :
+    - 404 si la tâche n'existe pas (même message que get_task) ;
+    - sinon, la tâche est retirée de tasks_db et la réponse est vide (204).
 
-    2. Supprimer la tâche du dictionnaire tasks_db
-       - Utiliser: del tasks_db[task_id]
-
-    3. Retourner None (car status_code=204 n'a pas de body)
-
-    Indice: C'est très simple, seulement 3 lignes de code !
+    Indice : get_task(), plus haut dans ce fichier, vérifie déjà si une tâche existe.
     """
     
     if task_id not in tasks_db:
@@ -282,6 +264,6 @@ async def delete_task(task_id: int):
     return None
     
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover (lancement manuel, pas testé)
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

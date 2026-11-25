@@ -101,7 +101,7 @@ jobs:                       # 3️⃣ Les tâches à faire
   test:
     runs-on: ubuntu-latest  # 4️⃣ Machine virtuelle
     steps:                  # 5️⃣ Les étapes
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: pytest
 ```
 
@@ -124,11 +124,9 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
 
 ### Instructions
 
-1. **Créez la structure des workflows :**
+1. **Repérez le dossier des workflows.** Le dossier `.github/workflows/` existe déjà **à la racine du dépôt** (il contient `docs.yml`, qui sert à publier cette documentation : ne le modifiez pas).
 
-   ```bash
-   mkdir -p .github/workflows
-   ```
+   ⚠️ Créez vos workflows dans ce dossier, **pas** dans `backend/` ni dans `frontend/` : GitHub ne lit que `.github/workflows/` à la racine, et ignore sans prévenir un workflow placé ailleurs.
 
 2. **Créez le fichier `.github/workflows/backend.yml` avec ce squelette :**
 
@@ -140,12 +138,12 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
        branches: [main]
 
    jobs:
-     test:
+     backend:
        runs-on: ubuntu-latest
 
        steps:
          - name: Checkout code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          # TODO : Setup Python 3.11 avec cache pip
 
@@ -159,10 +157,10 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
 3. **Complétez les TODO en vous aidant de la documentation**
 
    **📖 Documentation utile :**
-   - [actions/setup-python](https://github.com/actions/setup-python#caching-packages-dependencies) : Pour Setup Python avec cache
+   - [actions/setup-python](https://github.com/actions/setup-python) : la page commence par un **exemple d'utilisation** (`uses:` suivi de `with:`). Partez de cet exemple, puis ajoutez le cache (section *Caching packages dependencies*).
 
    **💡 Indices :**
-   - **Setup Python** : Utilisez `actions/setup-python@v5` avec les paramètres :
+   - **Setup Python** : Utilisez `actions/setup-python@v7` avec les paramètres :
      - `python-version: '3.11'`
      - `cache: 'pip'` (pour activer le cache automatique)
    - **Commandes shell** : Utilisez `run:` suivi de la commande
@@ -184,7 +182,7 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
    uv run pytest -v --cov
    ```
 
-6. **Poussez et vérifiez sur GitHub Actions :**
+5. **Poussez et vérifiez sur GitHub Actions :**
 
    ```bash
    git add .github/workflows/backend.yml
@@ -192,13 +190,15 @@ Créer un workflow qui teste automatiquement le backend à chaque push.
    git push origin main
    ```
 
+💡 **Erreur « Invalid workflow file » ?** Le fichier YAML est mal écrit, presque toujours à cause de l'**indentation** (YAML utilise des espaces, jamais de tabulations, et `with:` doit être décalé sous `uses:`). Le workflow ne se lance même pas : cliquez sur l'erreur dans l'onglet Actions pour voir la ligne fautive. L'extension VS Code **GitHub Actions** souligne ces erreurs avant même de pousser.
+
 ### ✅ Résultat attendu
 
 Dans l'onglet "Actions" sur GitHub, vous devriez voir :
 
 ```
 ✅ Backend Tests
-  └─ test
+  └─ backend
       ├─ Checkout code
       ├─ Setup Python
       ├─ Install UV
@@ -226,14 +226,14 @@ Créer un workflow qui teste et build le frontend automatiquement.
        branches: [main]
 
    jobs:
-     test:
+     frontend:
        runs-on: ubuntu-latest
 
        steps:
          - name: Checkout code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
-         # TODO : Setup Node.js 18 avec cache npm
+         # TODO : Setup Node.js 24 avec cache npm
          # Indice : cache-dependency-path: frontend/package-lock.json
 
          # TODO : Installez les dépendances (cd frontend && npm ci)
@@ -249,8 +249,8 @@ Créer un workflow qui teste et build le frontend automatiquement.
    - [actions/setup-node](https://github.com/actions/setup-node#caching-global-packages-data) : Pour Setup Node.js avec cache
 
    **💡 Indices :**
-   - **Setup Node** : Utilisez `actions/setup-node@v4` avec les paramètres :
-     - `node-version: '18'`
+   - **Setup Node** : Utilisez `actions/setup-node@v7` avec les paramètres :
+     - `node-version: '24'`
      - `cache: 'npm'`
      - `cache-dependency-path: frontend/package-lock.json`
    - **npm ci** : Installe exactement les versions de `package-lock.json`
@@ -262,6 +262,8 @@ Créer un workflow qui teste et build le frontend automatiquement.
    npm test -- --run
    npm run build
    ```
+
+   💡 `--run` lance les tests **une seule fois**. Sans lui, `npm test` reste ouvert en mode surveillance (pratique en développement, mais la CI attend que la commande se termine).
 
 4. **Poussez et vérifiez :**
 
@@ -348,7 +350,7 @@ Apprendre à lire les logs et corriger les erreurs de workflow.
 
 ### ✅ Leçon apprise
 
-**Si ça passe localement, ça passera sur GitHub !**
+**Reproduisez toujours l'erreur en local** : c'est beaucoup plus rapide que de pousser et d'attendre GitHub à chaque essai.
 
 ---
 
@@ -390,7 +392,7 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
 
 1. **Sur GitHub, allez dans votre repository → Settings → Branches**
 
-2. **Cliquez sur "Add branch protection rule"**
+2. **Cliquez sur "Add classic branch protection rule"** (et non sur "Add branch ruleset", qui est une autre interface)
 
 3. **Configurez ces paramètres :**
 
@@ -399,10 +401,10 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
 
    **b) Require status checks to pass before merging**
    - ✅ Cochez la case **"Require status checks to pass before merging"**
-   - Dans la barre de recherche qui apparaît, tapez : `test`
-   - Cliquez sur `test` dans les résultats (c'est le nom du job de vos workflows)
+   - Dans la barre de recherche qui apparaît, tapez `backend` et cliquez sur le résultat
+   - Faites de même avec `frontend` (ce sont les noms des jobs de vos deux workflows)
 
-   💡 **Si `test` n'apparaît pas :** Vos workflows n'ont pas encore tourné. Retournez sur l'onglet "Actions" et vérifiez qu'ils ont bien été exécutés.
+   💡 **Si `backend` ou `frontend` n'apparaît pas :** Vos workflows n'ont pas encore tourné. Retournez sur l'onglet "Actions" et vérifiez qu'ils ont bien été exécutés.
 
 4. **Scrollez tout en bas et cliquez sur "Create"**
 
@@ -451,9 +453,9 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
 
 5. **Observez ce qui se passe :**
    - ⏳ Les workflows s'exécutent automatiquement
-   - ❌ Le job `test` échoue (tests backend en erreur)
+   - ❌ Le job `backend` échoue (tests backend en erreur)
    - 🔒 Le bouton **"Merge pull request"** devient **grisé et inutilisable**
-   - ⚠️ GitHub affiche : _"Required status check 'test' has not been successful"_
+   - ⚠️ GitHub affiche : _"Required status check 'backend' has not been successful"_
 
 ### ✅ Partie 3 : Corriger et Merger
 
@@ -494,10 +496,10 @@ Empêcher les merges sur `main` si les tests échouent. Vous allez créer une br
 
 ```
 ⚠️ Merging is blocked
-❌ Required status check "test" has not been successful
+❌ Required status check "backend" has not been successful
 
 Some checks were not successful
-❌ Backend Tests / test — Failed
+❌ Backend Tests / backend — Failed
 
 This branch has not been approved
 🔒 Merge blocked
@@ -507,8 +509,8 @@ This branch has not been approved
 
 ```
 ✅ All checks have passed
-✅ Backend Tests / test — Passed
-✅ Frontend Tests / test — Passed
+✅ Backend Tests / backend — Passed
+✅ Frontend Tests / frontend — Passed
 
 This branch has no conflicts with the base branch
 🎉 Ready to merge
@@ -540,16 +542,14 @@ Créer un pipeline CI global qui orchestre backend et frontend.
 
 1. **Rendez vos workflows réutilisables :**
 
-   Dans `backend.yml` et `frontend.yml`, ajoutez `pull_request` et `workflow_call` aux déclencheurs :
+   Dans `backend.yml` et `frontend.yml`, remplacez tout le bloc `on:` par :
 
    ```yaml
    on:
-     push:
-       branches: [main]
-     pull_request:  # ✨ Nouveau !
-       branches: [main]
-     workflow_call:  # ✨ Nouveau !
+     workflow_call:  # ✨ Ce workflow sera lancé par le pipeline
    ```
+
+   💡 **Pourquoi retirer `push` ?** Sinon, chaque push lancerait les tests **deux fois** : une fois par `backend.yml` lui-même, une fois par le pipeline. Désormais, c'est le pipeline qui décide quand lancer les tests.
 
 2. **Créez `.github/workflows/ci-pipeline.yml` :**
 
@@ -588,17 +588,25 @@ Créer un pipeline CI global qui orchestre backend et frontend.
    git push origin main
    ```
 
+4. **Mettez à jour la protection de branche** (Settings → Branches → modifiez la règle de `main`) :
+   - Retirez les checks `backend` et `frontend`
+   - Ajoutez le check **`All Tests Passed`** (le job `summary` du pipeline)
+   - Cliquez **"Save changes"**
+
+   💡 **Pourquoi ?** Les jobs lancés par le pipeline changent de nom (ils deviennent `Backend Tests / backend`). Un seul check final qui attend tous les autres est plus simple : si vous ajoutez un workflow plus tard, la règle n'a pas besoin de changer.
+
 ### ✅ Résultat
 
-Vous verrez maintenant **3 workflows** :
+Dans l'onglet **Actions**, il n'y a plus qu'**un seul workflow** par push, avec 3 jobs :
 
 ```
-✅ Backend Tests
-✅ Frontend Tests
-✅ CI Pipeline (résumé global)
+✅ CI Pipeline
+  ├─ Backend Tests / backend
+  ├─ Frontend Tests / frontend
+  └─ All Tests Passed
 ```
 
-Le job `summary` attend que backend **ET** frontend soient terminés avant de s'exécuter.
+Le job `summary` (All Tests Passed) attend que backend **ET** frontend soient terminés avant de s'exécuter.
 
 ---
 
@@ -684,10 +692,6 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
    name: Backend Tests
 
    on:
-     push:
-       branches: [main]
-     pull_request:
-       branches: [main]
      workflow_call:
 
    jobs:
@@ -697,10 +701,10 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
 
        steps:
          - name: 📥 Checkout code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: 🐍 Setup Python 3.11
-           uses: actions/setup-python@v5
+           uses: actions/setup-python@v7
            with:
              python-version: '3.11'
              cache: 'pip'
@@ -726,10 +730,10 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
 
        steps:
          - name: 📥 Checkout code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: 🐍 Setup Python 3.11
-           uses: actions/setup-python@v5
+           uses: actions/setup-python@v7
            with:
              python-version: '3.11'
              cache: 'pip'
@@ -765,7 +769,7 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
    git push origin main
    ```
 
-   → Sur GitHub, allez dans **Actions** → Cliquez sur le workflow **"Backend Tests"** → Vous devriez voir **les deux jobs : "Unit Tests" ET "E2E Tests"** s'exécuter.
+   → Sur GitHub, allez dans **Actions** → ouvrez le dernier **"CI Pipeline"** → Vous devriez voir **les deux jobs backend : "Unit Tests" ET "E2E Tests"**.
 
    **Étape 2 : Tester sur une PR**
 
@@ -785,7 +789,7 @@ Les tests **E2E (end-to-end)** vérifient le fonctionnement complet de l’appli
    gh pr create --title "Test E2E sur PR" --body "Vérifier que E2E ne tourne pas sur PR"
    ```
 
-   → Sur GitHub, allez dans **Actions** → Cliquez sur le workflow **"Backend Tests"** de la PR → Vous devriez voir **seulement le job "Unit Tests"** s'exécuter (pas de E2E Tests).
+   → Sur GitHub, allez dans **Actions** → ouvrez le **"CI Pipeline"** de la PR → Vous devriez voir **seulement le job "Unit Tests"** côté backend ("E2E Tests" est marqué *skipped*). Le check `All Tests Passed` reste vert : un job sauté volontairement ne bloque pas la PR.
 
 ### ✅ Résultat attendu
 
@@ -806,9 +810,7 @@ Afficher le statut des workflows dans votre README.
    ```markdown
    # TaskFlow API
 
-   ![Backend Tests](https://github.com/VOTRE_NOM/VOTRE_REPO/workflows/Backend%20Tests/badge.svg)
-   ![Frontend Tests](https://github.com/VOTRE_NOM/VOTRE_REPO/workflows/Frontend%20Tests/badge.svg)
-   ![CI Pipeline](https://github.com/VOTRE_NOM/VOTRE_REPO/workflows/CI%20Pipeline/badge.svg)
+   ![CI Pipeline](https://github.com/VOTRE_NOM/VOTRE_REPO/actions/workflows/ci-pipeline.yml/badge.svg)
    ```
 
 2. **Remplacez :**
@@ -825,11 +827,9 @@ Afficher le statut des workflows dans votre README.
 
 ### ✅ Résultat
 
-Sur GitHub, vous verrez des badges qui se mettent à jour automatiquement :
+Sur GitHub, le badge se met à jour automatiquement : vert si le dernier pipeline sur `main` a réussi, rouge sinon.
 
-```
-✅ Backend Tests  ✅ Frontend Tests  ✅ CI Pipeline
-```
+💡 Un seul badge suffit : depuis l'exercice 5, `backend.yml` et `frontend.yml` ne tournent plus seuls, ils sont lancés par le pipeline.
 
 ---
 
@@ -866,6 +866,11 @@ Vous savez maintenant :
 
 ## 🐛 Erreurs Fréquentes
 
+### ❌ « Invalid workflow file » ou le workflow n'apparaît pas
+
+**Causes :** YAML mal indenté (tabulation, `with:` pas décalé sous `uses:`), ou fichier placé ailleurs que dans `.github/workflows/` à la racine du dépôt
+**Solution :** Cliquez sur l'erreur dans l'onglet Actions pour voir la ligne fautive ; vérifiez l'emplacement du fichier
+
 ### ❌ `uv: command not found`
 
 **Cause :** UV n'est pas installé ou pas dans le PATH
@@ -900,7 +905,7 @@ Vous savez maintenant :
 
 ### Objectif
 
-Tester automatiquement les 3 projets Java (calculator, string-utils, bank-account).
+Tester automatiquement les 2 exercices Java (`calculs-geo` et `money`).
 
 ### Instructions
 
@@ -927,31 +932,21 @@ jobs:
 
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: ☕ Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
-      - name: 🧮 Test Calculator
-        working-directory: java-exercises/calculator
-        run: |
-          javac -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar *.java
-          java -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar org.junit.runner.JUnitCore CalculatorTest
+      - name: 📐 Test Calculs Géométriques
+        working-directory: java-exercises/calculs-geo
+        run: make test
 
-      - name: 📝 Test String Utils
-        working-directory: java-exercises/string-utils
-        run: |
-          javac -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar *.java
-          java -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar org.junit.runner.JUnitCore StringUtilsTest
-
-      - name: 🏦 Test Bank Account
-        working-directory: java-exercises/bank-account
-        run: |
-          javac -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar *.java
-          java -cp .:../lib/junit-4.13.2.jar:../lib/hamcrest-core-1.3.jar org.junit.runner.JUnitCore BankAccountTest
+      - name: 💰 Test Money
+        working-directory: java-exercises/money
+        run: make test
 ```
 
 ### Nouveaux concepts
@@ -973,8 +968,8 @@ Vous pouvez lancer le workflow manuellement depuis l'onglet Actions.
 **`working-directory:` - Répertoire de travail**
 
 ```yaml
-- name: Test Calculator
-  working-directory: java-exercises/calculator
+- name: Test Money
+  working-directory: java-exercises/money
 ```
 
 Plus propre que d'utiliser `cd` dans chaque commande.
@@ -984,7 +979,7 @@ Plus propre que d'utiliser `cd` dans chaque commande.
 **Option 1 : Modifier un fichier Java**
 
 ```bash
-echo "// Test CI" >> java-exercises/calculator/Calculator.java
+echo "// Test CI" >> java-exercises/money/Money.java
 git add java-exercises/
 git commit -m "test: trigger Java workflow"
 git push
