@@ -3,7 +3,7 @@ name: Backend Tests
 on:
   push:
     branches: [main]
-  pull_request:            # aussi sur les pull requests (indispensable à l'exercice 4)
+  pull_request:
     branches: [main]
 
 jobs:
@@ -14,28 +14,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      # TODO : Setup Python 3.11 avec cache pip
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-            python-version: '3.13' 
-      - name: Setup Python
-        run: .py
+          python-version: "3.13"
 
-      # TODO : Installez UV avec pip
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-            python-version: '3.13'
-            cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements.txt
-      - name: Install UV
-        run: pip install uv
+      - name: Install uv
+        run: python -m pip install uv
 
-      # TODO : Installez les dépendances (cd backend && uv sync)
       - name: Install dependencies
-        run: cd backend && uv sync
+        working-directory: backend
+        run: uv sync --locked
 
-      # TODO : Lancez les tests
       - name: Run tests
-        run: uv run pytest -v --cov
+        working-directory: backend
+        run: uv run pytest -v
